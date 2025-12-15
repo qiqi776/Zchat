@@ -3,13 +3,14 @@ module Zchat
 go 1.25.3
 
 require (
+	github.com/BurntSushi/toml v0.3.1
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.1.13
 	github.com/alibabacloud-go/dysmsapi-20170525/v4 v4.1.3
 	github.com/alibabacloud-go/tea v1.3.14
-	github.com/alibabacloud-go/tea-console v1.0.0
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.9
 	github.com/gin-gonic/gin v1.11.0
 	github.com/go-redis/redis/v8 v8.11.5
+	github.com/natefinch/lumberjack v2.0.0+incompatible
 	go.uber.org/zap v1.27.1
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/gorm v1.31.1
@@ -62,4 +63,5 @@ require (
 	golang.org/x/tools v0.34.0 // indirect
 	google.golang.org/protobuf v1.36.9 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 )
