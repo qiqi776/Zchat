@@ -1,13 +1,13 @@
 package zlog
 
 import (
-	"Zchat/config"
 	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"
 	"path"
 	"runtime"
+	"Zchat/config"
 )
 
 var logger *zap.Logger

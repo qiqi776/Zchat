@@ -1,13 +1,12 @@
 package dao
 
 import (
-
-	"Zchat/internal/dao"
-	"Zchat/internal/model"
-	"Zchat/pkg/util/random"
 	"strconv"
 	"testing"
 	"time"
+	"Zchat/internal/dao"
+	"Zchat/internal/model"
+	"Zchat/pkg/util/random"
 )
 
 func TestCreate(t *testing.T) {

@@ -1,14 +1,12 @@
 package chat
 
 import (
+	"encoding/json"
+	"fmt"
+	"github.com/gorilla/websocket"
+	"sync"	
 	"Zchat/internal/model"
 	"Zchat/pkg/zlog"
-	"encoding/json"
-	"sync"
-
-	"fmt"
-
-	"github.com/gorilla/websocket"
 )
 
 type Server struct {

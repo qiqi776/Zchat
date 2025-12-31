@@ -1,12 +1,12 @@
 package redis
 
 import (
+	"context"
+	"github.com/go-redis/redis/v8"
+	"strconv"
+	"time"
 	"Zchat/config"
 	"Zchat/pkg/zlog"
-	"context"
-	"time"
-	"strconv"
-	"github.com/go-redis/redis/v8"
 )
 
 var redisClient *redis.Client

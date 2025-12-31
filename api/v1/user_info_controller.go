@@ -1,10 +1,10 @@
 package v1
 
 import (
-	"Zchat/internal/dto/request"
-	"Zchat/internal/service/gorm"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"Zchat/internal/dto/request"
+	"Zchat/internal/service/gorm"
 )
 
 // 注册

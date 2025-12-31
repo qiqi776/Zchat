@@ -48,7 +48,7 @@ type Config struct {
 var config *Config
 
 func LoadConfig() error {
-	if _, err := toml.DecodeFile("F:\\go\\apylee-chat-server\\config_local.toml", config); err != nil {
+	if _, err := toml.DecodeFile("F:\\go\\Zchat\\config_local.toml", config); err != nil {
 		log.Fatal(err.Error())
 		return err
 	}

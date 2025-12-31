@@ -1,12 +1,12 @@
 package dao
 
 import (
-	"Zchat/internal/model"
-	"Zchat/pkg/zlog"
-	"Zchat/config"
 	"fmt"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"Zchat/internal/model"
+	"Zchat/pkg/zlog"
+	"Zchat/config"
 )
 
 var GormDB *gorm.DB
@@ -25,7 +25,7 @@ func init() {
 	if err != nil {
 		zlog.Fatal(err.Error())
 	}
-	err = GormDB.AutoMigrate(&model.UserInfo{}, &model.GroupInfo{})
+	err = GormDB.AutoMigrate(&model.UserInfo{})
 	if err != nil {
 		zlog.Fatal(err.Error())
 	}

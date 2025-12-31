@@ -1,9 +1,9 @@
 package zlog
 
 import (
-	"Zchat/pkg/zlog"
 	"go.uber.org/zap"
 	"testing"
+	"Zchat/pkg/zlog"
 )
 
 func TestInfo(t *testing.T) {

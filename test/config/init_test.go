@@ -1,9 +1,9 @@
 package config
 
 import (
-	"Zchat/config"
 	"fmt"
 	"testing"
+	"Zchat/config"
 )
 
 func TestInit(t *testing.T) {
