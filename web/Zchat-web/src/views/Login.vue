@@ -1,51 +1,118 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
+import { login } from '@/api/auth'
 
 const router = useRouter()
-const username = ref('')
-const password = ref('')
+const userStore = useUserStore()
 
-const handleLogin = () => {
-  console.log('Login with:', username.value, password.value)
-  // 这里暂时不做真实请求，直接跳转到聊天页(虽然还没做)
-  // router.push('/chat')
-  alert('登录按钮点击成功！')
+const form = ref({
+  telephone: '',
+  password: '',
+})
+
+const isLoading = ref(false)
+
+const handleLogin = async () => {
+  if (!form.value.telephone || !form.value.password) {
+    alert('请输入账号和密码')
+    return
+  }
+
+  isLoading.value = true
+
+  try {
+    const res = await login({
+      telephone: form.value.telephone,
+      password: form.value.password,
+    })
+
+    userStore.setUser(res.userInfo, res.token)
+    console.log('登录成功')
+    router.push('/chat')
+  } catch (error: any) {
+    console.error('登录失败详情:', error)
+    alert('登录失败,请检查账号密码')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const goToRegister = () => {
+  router.push('/register')
 }
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-100">
-    <div class="bg-white p-8 rounded-lg shadow-md w-96">
-      <h1 class="text-2xl font-bold mb-6 text-center text-gray-800">Zchat 登录</h1>
+  <div
+    class="min-h-screen w-full bg-[url('@/assets/img/chat_server_background.jpg')] bg-cover bg-center flex items-center justify-center"
+  >
+    <div
+      class="w-96 bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-8 transition-all hover:shadow-2xl"
+    >
+      <h2 class="text-3xl font-bold text-center text-gray-800 mb-8">Zchat 登录</h2>
 
-      <div class="space-y-4">
+      <div class="space-y-6">
         <div>
-          <label class="block text-sm font-medium text-gray-700">用户名</label>
+          <label class="block text-sm font-medium text-gray-600 mb-1 ml-1">账号</label>
           <input
-            v-model="username"
+            v-model="form.telephone"
             type="text"
-            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            placeholder="请输入用户名"
+            placeholder="请输入手机号"
+            class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white/50 focus:bg-white focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition-all duration-200"
           />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700">密码</label>
+          <label class="block text-sm font-medium text-gray-600 mb-1 ml-1">密码</label>
           <input
-            v-model="password"
+            v-model="form.password"
             type="password"
-            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             placeholder="请输入密码"
+            class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white/50 focus:bg-white focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition-all duration-200"
+            @keyup.enter="handleLogin"
           />
         </div>
 
         <button
           @click="handleLogin"
-          class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          :disabled="isLoading"
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-lg transition duration-200 transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
         >
-          登录
+          <svg
+            v-if="isLoading"
+            class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+          {{ isLoading ? '登录中...' : '立即登录' }}
         </button>
+
+        <div class="flex justify-center mt-4">
+          <span class="text-sm text-gray-500 mr-1">没有账号？</span>
+          <button
+            @click="goToRegister"
+            class="text-sm text-blue-600 font-semibold hover:text-blue-800 hover:underline transition"
+          >
+            立即注册
+          </button>
+        </div>
       </div>
     </div>
   </div>
