@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { User } from '@/models/chat'
+import type { User } from '@/models/user'
 
 export const useUserStore = defineStore('user', () => {
   // 1. 用户信息
@@ -9,29 +9,41 @@ export const useUserStore = defineStore('user', () => {
     nickname: '',
     avatar: '',
     telephone: '',
+    signature: '',
+    email: '',
+    gender: 0,
+    birthday: '',
+    created_at: '',
   })
 
   // 尝试从本地缓存读取，这样刷新页面不会退出登录
   const token = ref(localStorage.getItem('user_token') || '')
 
-  // 登录成功调用的动作
   const setUser = (user: User, newToken: string) => {
     userInfo.value = user
     token.value = newToken
-    // 存入本地缓存
     localStorage.setItem('user_token', newToken)
     localStorage.setItem('user_info', JSON.stringify(user))
   }
 
   // 退出登录
   const logout = () => {
-    userInfo.value = { uuid: '', nickname: '', avatar: '' }
+    userInfo.value = {
+      uuid: '',
+      nickname: '',
+      avatar: '',
+      telephone: '',
+      signature: '',
+      email: '',
+      gender: 0,
+      birthday: '',
+      created_at: '',
+    }
     token.value = ''
     localStorage.removeItem('user_token')
     localStorage.removeItem('user_info')
   }
 
-  // 初始化恢复,防止刷新丢失数据
   const init = () => {
     const storedUser = localStorage.getItem('user_info')
     if (storedUser) {
@@ -39,6 +51,7 @@ export const useUserStore = defineStore('user', () => {
         userInfo.value = JSON.parse(storedUser)
       } catch (e) {
         console.error('解析用户信息失败', e)
+        localStorage.removeItem('user_info')
       }
     }
   }

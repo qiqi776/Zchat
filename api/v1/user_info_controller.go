@@ -11,18 +11,32 @@ import (
 func Register(c *gin.Context) {
 	var registerReq request.RegisterRequest
 	if err := c.BindJSON(&registerReq); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusOK, gin.H{
+			"code":  400,
+			"error": err.Error(),
+		})
 		return
 	}
-	message, err := gorm.UserInfoService.Register(c, registerReq)
+	message, userInfoStr, err := gorm.UserInfoService.Register(c, registerReq)
 	if message != "" && err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": message})
+		c.JSON(http.StatusOK, gin.H{
+			"code":  400,
+			"error": message,
+		})
 		return
 	} else if message == "" && err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusOK, gin.H{
+			"code":  400,
+			"error": err.Error(),
+		})
 		return
 	} else if message == "" && err != nil {
-		c.JSON(http.StatusOK, gin.H{"message": "register success"})
+		c.JSON(http.StatusOK, gin.H{
+			"code":    200,
+			"message": "register success",
+			"data":    userInfoStr,
+		})
+		return
 	}
 }
 
@@ -30,17 +44,31 @@ func Register(c *gin.Context) {
 func Login(c *gin.Context) {
 	var loginReq request.LoginRequest
 	if err := c.BindJSON(&loginReq); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusOK, gin.H{
+			"code":  400,
+			"error": err.Error(),
+		})
+		return
 	}
-	message, err := gorm.UserInfoService.Login(c, loginReq)
+	message, userInfoStr, err := gorm.UserInfoService.Login(c, loginReq)
 	if message != "" && err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": message})
+		c.JSON(http.StatusOK, gin.H{
+			"code":  400,
+			"error": message,
+		})
 		return
 	} else if message == "" && err != nil {
-		c.JSON(http.StatusOK, gin.H{"error": err.Error()})
+		c.JSON(http.StatusOK, gin.H{
+			"code":  400,
+			"error": err.Error(),
+		})
 		return
 	} else if message == "" && err == nil {
-		c.JSON(http.StatusOK, gin.H{"message": "login success"})
+		c.JSON(http.StatusOK, gin.H{
+			"code":    200,
+			"message": "login success",
+			"data":    userInfoStr,
+		})
 		return
 	}
 }

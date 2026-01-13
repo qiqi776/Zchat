@@ -5,24 +5,38 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/login',
+      redirect: '/Login',
     },
     {
       path: '/login',
-      name: 'login',
-      component: () => import('../views/Login.vue'),
+      name: 'Login',
+      component: () => import('../views/access/Login.vue'),
     },
     {
       path: '/register',
-      name: 'register',
-      component: () => import('../views/Register.vue'),
+      name: 'Register',
+      component: () => import('../views/access/Register.vue'),
     },
     {
       path: '/chat',
-      name: 'chat',
-      component: () => import('../views/Chat.vue'),
+      name: 'Chat',
+      component: () => import('../views/chat/Chat.vue'),
+    },
+    {
+      path: '/chat/contactlist',
+      name: 'ContactList',
+      component: () => import('../views/chat/ContactList.vue'),
+    },
+    {
+      path: '/profile',
+      name: 'Profile',
+      component: () => import('../views/chat/Profile.vue'),
     },
   ],
+})
+
+router.beforeEach((to, from, next) => {
+  next()
 })
 
 export default router

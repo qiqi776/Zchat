@@ -12,11 +12,32 @@ const form = ref({
 })
 
 const isLoading = ref(false)
+const errorMessage = ref('')
+const successMessage = ref('')
+
+// 校验
+const checkTelephoneValid = () => {
+  const regex = /^1([38][0-9]|14[579]|5[^4]|16[6]|7[1-35-8]|9[189])\d{8}$/
+  return regex.test(form.value.telephone)
+}
+
+// 关闭提示框
+const closeAlert = () => {
+  errorMessage.value = ''
+  successMessage.value = ''
+}
 
 // 注册
 const handleRegister = async () => {
+  closeAlert()
+
   if (!form.value.nickname || !form.value.telephone || !form.value.password) {
     alert('请填写完整注册信息')
+    return
+  }
+
+  if (!checkTelephoneValid()) {
+    errorMessage.value = '请输入有效的手机号码'
     return
   }
 
@@ -29,11 +50,14 @@ const handleRegister = async () => {
       password: form.value.password,
     })
 
-    alert('注册成功！请前往登录')
-    router.push('/login')
+    successMessage.value = '注册成功！即将跳转登录...'
+
+    setTimeout(() => {
+      router.push('/login')
+    }, 1500)
   } catch (error: any) {
     console.error('注册失败:', error)
-    alert('注册失败，请稍后重试')
+    errorMessage.value = error.response?.data?.msg || '注册失败，请稍后重试'
   } finally {
     isLoading.value = false
   }
@@ -53,14 +77,77 @@ const goToLogin = () => {
     >
       <h2 class="text-3xl font-bold text-center text-gray-800 mb-8">注册账号</h2>
 
+      <div
+        v-if="errorMessage"
+        class="mb-4 p-3 bg-red-100 border border-red-200 text-red-700 rounded-lg flex items-center justify-between text-sm animate-pulse"
+      >
+        <div class="flex items-center">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5 mr-2"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          {{ errorMessage }}
+        </div>
+        <button @click="errorMessage = ''" class="hover:text-red-900">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <div
+        v-if="successMessage"
+        class="mb-4 p-3 bg-green-100 border border-green-200 text-green-700 rounded-lg flex items-center justify-between text-sm"
+      >
+        <div class="flex items-center">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5 mr-2"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          {{ successMessage }}
+        </div>
+      </div>
+
       <div class="space-y-5">
         <div>
           <label class="block text-sm font-medium text-gray-600 mb-1 ml-1">昵称</label>
           <input
             v-model="form.nickname"
             type="text"
-            placeholder="给自己起个好听的名字"
+            placeholder="3-10个字符"
             class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white/50 focus:bg-white focus:ring-2 focus:ring-green-400 focus:border-transparent outline-none transition-all duration-200"
+            @input="closeAlert"
           />
         </div>
 
@@ -71,6 +158,7 @@ const goToLogin = () => {
             type="text"
             placeholder="请输入手机号"
             class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white/50 focus:bg-white focus:ring-2 focus:ring-green-400 focus:border-transparent outline-none transition-all duration-200"
+            @input="closeAlert"
           />
         </div>
 
@@ -82,6 +170,7 @@ const goToLogin = () => {
             placeholder="请设置密码"
             class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white/50 focus:bg-white focus:ring-2 focus:ring-green-400 focus:border-transparent outline-none transition-all duration-200"
             @keyup.enter="handleRegister"
+            @input="closeAlert"
           />
         </div>
 
