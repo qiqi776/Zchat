@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
+import { createGroup } from '@/api/chat'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -33,8 +34,42 @@ const joinedGroups = ref([
   },
 ])
 
+// 弹窗
+const showCreateGroupModal = ref(false)
+const newGroupName = ref('')
+const isCreating = ref(false)
+
 const handleToChat = () => {
   router.push('/chat')
+}
+
+const openCreateModal = () => {
+  showCreateGroupModal.value = true
+  newGroupName.value = ''
+}
+
+const handleCreateGroup = async () => {
+  if (!newGroupName.value.trim()) {
+    alert('请输入群名称')
+    return
+  }
+
+  isCreating.value = true
+  try {
+    await createGroup({
+      owner_id: currentUser.value.uuid,
+      name: newGroupName.value,
+      notice: '欢迎加入群聊',
+    })
+
+    alert('创建成功！')
+    showCreateGroupModal.value = false
+  } catch (error) {
+    console.error(error)
+    alert('创建失败，请检查网络或后端')
+  } finally {
+    isCreating.value = false
+  }
 }
 
 const handleSelectContact = (item: any) => {
@@ -42,12 +77,13 @@ const handleSelectContact = (item: any) => {
   // 这里可以做跳转到聊天，或者在右侧显示资料
 }
 </script>
-
 <template>
   <div
     class="h-screen w-full bg-[url('@/assets/img/chat_server_background.jpg')] bg-cover bg-center flex items-center justify-center"
   >
-    <div class="w-[1000px] h-[600px] bg-white rounded-[30px] shadow-2xl flex overflow-hidden">
+    <div
+      class="w-[1000px] h-[600px] bg-white rounded-[30px] shadow-2xl flex overflow-hidden relative"
+    >
       <div class="w-[30%] border-r-[3px] border-gray-300 flex">
         <div class="w-[60px] h-full bg-[#FCD3D3] flex flex-col items-center py-6">
           <div class="mb-6">
@@ -119,6 +155,63 @@ const handleSelectContact = (item: any) => {
                 />
               </svg>
             </button>
+            <button class="hover:text-gray-900 hover:scale-110 transition" title="收藏">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <div class="flex flex-col space-y-6 text-gray-600">
+            <button class="hover:text-gray-900 hover:scale-110 transition" title="设置">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+            </button>
+            <button class="hover:text-gray-900 hover:scale-110 transition" title="主页">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                />
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -130,8 +223,11 @@ const handleSelectContact = (item: any) => {
               placeholder="搜索联系人/群聊"
               class="flex-1 bg-gray-200 text-sm px-3 py-2 rounded-md outline-none focus:bg-white transition"
             />
+
             <button
+              @click="openCreateModal"
               class="w-9 h-9 bg-[#FCD3D3] rounded-lg flex items-center justify-center hover:bg-red-200 transition text-gray-700"
+              title="创建群聊"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -172,7 +268,6 @@ const handleSelectContact = (item: any) => {
                 </svg>
                 <span class="font-medium text-sm">联系人</span>
               </div>
-
               <div v-show="expandContacts" class="pl-4 space-y-1 mt-1">
                 <div
                   v-for="item in contacts"
@@ -274,6 +369,42 @@ const handleSelectContact = (item: any) => {
             />
           </svg>
           <p>选择一个联系人查看详细资料</p>
+        </div>
+      </div>
+
+      <div
+        v-if="showCreateGroupModal"
+        class="absolute inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center"
+      >
+        <div class="bg-white w-80 rounded-2xl shadow-2xl p-6 transform transition-all scale-100">
+          <h3 class="text-lg font-bold text-gray-800 mb-4 text-center">创建新群聊</h3>
+
+          <div class="mb-6">
+            <label class="block text-xs font-medium text-gray-500 mb-1 ml-1">群名称</label>
+            <input
+              v-model="newGroupName"
+              type="text"
+              placeholder="例如：周末开黑群"
+              class="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#FCD3D3] focus:border-transparent outline-none transition text-sm"
+              @keyup.enter="handleCreateGroup"
+            />
+          </div>
+
+          <div class="flex gap-3">
+            <button
+              @click="showCreateGroupModal = false"
+              class="flex-1 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition text-sm font-medium"
+            >
+              取消
+            </button>
+            <button
+              @click="handleCreateGroup"
+              :disabled="isCreating"
+              class="flex-1 py-2 rounded-lg bg-[#FCD3D3] text-gray-700 font-bold hover:bg-red-200 transition disabled:opacity-50 text-sm shadow-sm"
+            >
+              {{ isCreating ? '创建中...' : '立即创建' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>

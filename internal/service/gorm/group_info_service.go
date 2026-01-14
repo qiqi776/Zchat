@@ -2,11 +2,13 @@ package gorm
 
 import (
 	"errors"
+	"fmt"
 	"gorm.io/gorm"
 	"time"
 	"Zchat/internal/dao"
 	"Zchat/internal/dto/request"
 	"Zchat/internal/model"
+	"Zchat/pkg/util/random"
 	"Zchat/pkg/zlog"
 )
 type groupInfoService struct {
@@ -57,6 +59,22 @@ func (g *groupInfoService) SaveGroup(groupReq request.SaveGroupRequest) error {
 
 // CreateGroup 创建群聊
 func (g *groupInfoService) CreateGroup(groupReq request.CreateGroupRequest) error {
+	group := model.GroupInfo{
+		Uuid:      fmt.Sprintf("G%d", random.GetNowAndLenRandomString(11)),
+		Name:      groupReq.Name,
+		Notice:    groupReq.Notice,
+		OwnerId:   groupReq.OwnerId,
+		MemberCnt: 1,
+		AddMode:   groupReq.AddMode,
+		Avatar:    groupReq.Avatar,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	group.Members = append(group.Members, group.OwnerId)
+	if res := dao.GormDB.Create(&group); res.Error != nil {
+		zlog.Error(res.Error.Error())
+		return res.Error
+	}
 	return nil
 }
 
