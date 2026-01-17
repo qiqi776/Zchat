@@ -5,38 +5,47 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/Login',
+      redirect: '/login',
     },
     {
       path: '/login',
-      name: 'Login',
+      name: 'login',
       component: () => import('../views/access/Login.vue'),
     },
     {
       path: '/register',
-      name: 'Register',
+      name: 'register',
       component: () => import('../views/access/Register.vue'),
     },
     {
       path: '/chat',
-      name: 'Chat',
+      name: 'chat',
       component: () => import('../views/chat/Chat.vue'),
     },
     {
-      path: '/chat/contactlist',
-      name: 'ContactList',
+      path: '/contact',
+      name: 'contact',
       component: () => import('../views/chat/ContactList.vue'),
     },
     {
       path: '/profile',
-      name: 'Profile',
+      name: 'profile',
       component: () => import('../views/chat/Profile.vue'),
     },
   ],
 })
 
+// 防止未登录用户直接访问聊天页
 router.beforeEach((to, from, next) => {
-  next()
+  const publicPages = ['/login', '/register']
+  const authRequired = !publicPages.includes(to.path)
+  const loggedIn = localStorage.getItem('user_token')
+
+  if (authRequired && !loggedIn) {
+    next('/login')
+  } else {
+    next()
+  }
 })
 
 export default router

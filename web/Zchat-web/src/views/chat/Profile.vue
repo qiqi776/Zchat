@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
@@ -8,6 +8,20 @@ const router = useRouter()
 const userStore = useUserStore()
 const { userInfo } = storeToRefs(userStore)
 
+// --- 状态 ---
+const isModalVisible = ref(false)
+const isSaving = ref(false)
+
+// 编辑表单数据
+const editForm = reactive({
+  nickname: '',
+  email: '',
+  birthday: '',
+  signature: '',
+  avatar: '',
+})
+
+// --- 计算属性 ---
 const genderText = computed(() => {
   const g = userInfo.value.gender
   if (g === false || g === 0 || g === '0') return '男'
@@ -16,14 +30,61 @@ const genderText = computed(() => {
 })
 
 const formatDate = (dateStr?: string) => {
-  if (!dateStr) return '未知'
+  if (!dateStr) return '暂无'
   return dateStr.replace('T', ' ').split('.')[0]
 }
 
+// --- 交互逻辑 ---
 const handleToChat = () => router.push('/chat')
 const handleToContact = () => router.push('/contact')
-const handleEdit = () => {
-  console.log('点击编辑')
+
+// 打开编辑弹窗
+const openEditModal = () => {
+  // 回填当前数据
+  editForm.nickname = userInfo.value.nickname
+  editForm.email = userInfo.value.email || ''
+  editForm.birthday = userInfo.value.birthday || ''
+  editForm.signature = userInfo.value.signature || ''
+  editForm.avatar = userInfo.value.avatar
+
+  isModalVisible.value = true
+}
+
+// 保存资料
+const handleSaveProfile = async () => {
+  // 1. 简单校验
+  if (editForm.nickname.length < 2 || editForm.nickname.length > 20) {
+    alert('昵称长度需在 2-20 字之间')
+    return
+  }
+
+  isSaving.value = true
+
+  try {
+    // 2. 构造更新后的用户对象
+    // 注意：这里实际项目中应该调用后端 API (updateUserInfo)，成功后再更新本地 Store
+    // 这里演示直接更新 Store
+    const updatedUser = {
+      ...userInfo.value,
+      nickname: editForm.nickname,
+      email: editForm.email,
+      birthday: editForm.birthday,
+      signature: editForm.signature,
+      avatar: editForm.avatar,
+    }
+
+    // 3. 更新 Pinia (Pinia 会自动处理 localStorage 同步，如果你在 store 里写了的话)
+    // 如果 store 里没有自动同步，手动调一下 setUser
+    userStore.setUser(updatedUser, userStore.token)
+
+    alert('修改成功！')
+    isModalVisible.value = false
+  } catch (error) {
+    console.error(error)
+    alert('保存失败')
+  } finally {
+    isSaving.value = false
+  }
 }
 </script>
 
@@ -31,7 +92,9 @@ const handleEdit = () => {
   <div
     class="h-screen w-full bg-[url('@/assets/img/chat_server_background.jpg')] bg-cover bg-center flex items-center justify-center"
   >
-    <div class="w-[1000px] h-[600px] bg-white rounded-[30px] shadow-2xl flex overflow-hidden">
+    <div
+      class="w-[1000px] h-[600px] bg-white rounded-[30px] shadow-2xl flex overflow-hidden relative"
+    >
       <div
         class="w-[60px] h-full bg-[#FCD3D3] flex flex-col items-center py-6 border-r-[3px] border-gray-300"
       >
@@ -137,7 +200,7 @@ const handleEdit = () => {
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 stroke-width="2"
-                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
               />
               <path
                 stroke-linecap="round"
@@ -200,29 +263,24 @@ const handleEdit = () => {
                 <span class="w-24 text-gray-500 font-medium">电话</span>
                 <span class="text-gray-800 flex-1">{{ userInfo.telephone || '未绑定' }}</span>
               </div>
-
               <div class="flex border-b border-gray-100 pb-4">
                 <span class="w-24 text-gray-500 font-medium">邮箱</span>
                 <span class="text-gray-800 flex-1">{{ userInfo.email || '未绑定' }}</span>
               </div>
-
               <div class="flex border-b border-gray-100 pb-4">
                 <span class="w-24 text-gray-500 font-medium">性别</span>
                 <span class="text-gray-800 flex-1">{{ genderText }}</span>
               </div>
-
               <div class="flex border-b border-gray-100 pb-4">
                 <span class="w-24 text-gray-500 font-medium">生日</span>
                 <span class="text-gray-800 flex-1">{{ userInfo.birthday || '未设置' }}</span>
               </div>
-
               <div class="flex border-b border-gray-100 pb-4">
                 <span class="w-24 text-gray-500 font-medium">个性签名</span>
                 <span class="text-gray-800 flex-1">{{
                   userInfo.signature || '这个人很懒，什么都没写'
                 }}</span>
               </div>
-
               <div class="flex border-b border-gray-100 pb-4">
                 <span class="w-24 text-gray-500 font-medium">注册时间</span>
                 <span class="text-gray-800 flex-1">{{ formatDate(userInfo.created_at) }}</span>
@@ -231,7 +289,7 @@ const handleEdit = () => {
 
             <div class="mt-10 flex justify-end">
               <button
-                @click="handleEdit"
+                @click="openEditModal"
                 class="bg-[#FCD3D3] hover:bg-red-200 text-gray-700 font-medium px-8 py-2.5 rounded-lg shadow-sm transition flex items-center"
               >
                 <svg
@@ -251,6 +309,76 @@ const handleEdit = () => {
                 编辑资料
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="isModalVisible"
+        class="absolute inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center"
+      >
+        <div class="bg-white w-96 rounded-2xl shadow-2xl p-6 transform transition-all scale-100">
+          <h3 class="text-lg font-bold text-gray-800 mb-6 text-center">编辑个人资料</h3>
+
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1 ml-1">昵称</label>
+              <input
+                v-model="editForm.nickname"
+                type="text"
+                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#FCD3D3] focus:border-transparent outline-none transition text-sm"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1 ml-1">邮箱</label>
+              <input
+                v-model="editForm.email"
+                type="text"
+                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#FCD3D3] focus:border-transparent outline-none transition text-sm"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1 ml-1"
+                >生日 (格式: 2024.01.01)</label
+              >
+              <input
+                v-model="editForm.birthday"
+                type="text"
+                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#FCD3D3] focus:border-transparent outline-none transition text-sm"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1 ml-1">个性签名</label>
+              <input
+                v-model="editForm.signature"
+                type="text"
+                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#FCD3D3] focus:border-transparent outline-none transition text-sm"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1 ml-1">头像链接</label>
+              <input
+                v-model="editForm.avatar"
+                type="text"
+                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#FCD3D3] focus:border-transparent outline-none transition text-sm"
+              />
+            </div>
+          </div>
+
+          <div class="flex gap-3 mt-8">
+            <button
+              @click="isModalVisible = false"
+              class="flex-1 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition text-sm font-medium"
+            >
+              取消
+            </button>
+            <button
+              @click="handleSaveProfile"
+              :disabled="isSaving"
+              class="flex-1 py-2.5 rounded-lg bg-[#FCD3D3] text-gray-700 font-bold hover:bg-red-200 transition disabled:opacity-50 text-sm shadow-sm"
+            >
+              {{ isSaving ? '保存中...' : '保存' }}
+            </button>
           </div>
         </div>
       </div>

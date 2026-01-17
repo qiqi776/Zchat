@@ -38,13 +38,18 @@ func (u *userInfoService) checkUserIsAdminOrNot(user model.UserInfo) bool {
 
 // 校验邮箱是否有效
 func (u *userInfoService) checkEmailValid(email string) bool {
-	pattern := `^[\w\.-]+@[\w-]+\.[\w{2,3}(\.\w{2})?]$`
+	pattern := `^[^\s@]+@[^\s@]+\.[^\s@]+$`
 	match, err := regexp.MatchString(pattern, email)
 	if err != nil {
 		zlog.Fatal(err.Error())
 	}
 	return match
 }
+
+// 检验用户是否为管理员
+// func (u *userInfoService) checkUserIsAdminOrNot(user model.UserInfo) bool {
+// 	return user.IsAdmin
+// }
 
 // 登录
 func (u *userInfoService) Login(c *gin.Context,loginReq request.LoginRequest) (string, string, error) {

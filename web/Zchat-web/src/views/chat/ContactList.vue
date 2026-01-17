@@ -1,82 +1,100 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
-import { createGroup } from '@/api/chat'
+import { createGroup, getContactList } from '@/api/chat' // 确保 api/chat.ts 已定义
+import type { ContactItem, GroupItem } from '@/api/chat'
 
 const router = useRouter()
 const userStore = useUserStore()
 const { userInfo: currentUser } = storeToRefs(userStore)
 
-// 模拟通讯录数据
+// --- 状态管理 ---
 const contactSearch = ref('')
+const isModalVisible = ref(false)
+const isCreating = ref(false)
+
+// 折叠面板状态
 const expandContacts = ref(true)
 const expandMyGroups = ref(false)
 const expandJoinedGroups = ref(false)
 
-const contacts = ref([
-  { id: 'c1', name: '张三', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' },
-  { id: 'c2', name: '李四', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka' },
-])
-const myGroups = ref([
-  {
-    id: 'g1',
-    name: '前端交流群',
-    avatar: 'https://api.dicebear.com/7.x/identicon/svg?seed=group1',
-  },
-])
-const joinedGroups = ref([
-  {
-    id: 'g2',
-    name: '公司全员群',
-    avatar: 'https://api.dicebear.com/7.x/identicon/svg?seed=group2',
-  },
-])
+// 数据列表
+const contacts = ref<ContactItem[]>([])
+const myGroups = ref<GroupItem[]>([])
+const joinedGroups = ref<GroupItem[]>([])
 
-// 弹窗
-const showCreateGroupModal = ref(false)
-const newGroupName = ref('')
-const isCreating = ref(false)
+// 创建群聊表单 (对应后端 GroupInfo 结构)
+const createForm = reactive({
+  name: '',
+  notice: '',
+  addMode: false, // false: 直接加入, true: 需要审核
+  avatar: '',
+})
 
-const handleToChat = () => {
-  router.push('/chat')
+// --- 生命周期 ---
+onMounted(async () => {
+  try {
+    // 获取真实通讯录列表
+    const res = await getContactList()
+    if (res) {
+      contacts.value = res
+    }
+  } catch (error) {
+    console.error('加载通讯录失败:', error)
+  }
+})
+
+// --- 交互逻辑 ---
+const handleToChat = () => router.push('/chat')
+const handleToOwnInfo = () => router.push('/profile')
+
+const handleSelectContact = (item: ContactItem) => {
+  console.log('点击联系人:', item)
+  // TODO: 跳转到聊天页面并选中该联系人
+  // router.push({ path: '/chat', query: { target: item.user_id } })
 }
 
+// --- 弹窗逻辑 ---
 const openCreateModal = () => {
-  showCreateGroupModal.value = true
-  newGroupName.value = ''
+  isModalVisible.value = true
+  // 重置表单
+  createForm.name = ''
+  createForm.notice = ''
+  createForm.addMode = false
+  createForm.avatar = ''
 }
 
 const handleCreateGroup = async () => {
-  if (!newGroupName.value.trim()) {
+  if (!createForm.name.trim()) {
     alert('请输入群名称')
     return
   }
 
   isCreating.value = true
   try {
+    // 调用 API
     await createGroup({
-      owner_id: currentUser.value.uuid,
-      name: newGroupName.value,
-      notice: '欢迎加入群聊',
+      ownerId: currentUser.value.uuid, // 必须传群主ID
+      name: createForm.name,
+      notice: createForm.notice,
+      addMode: createForm.addMode,
+      avatar: createForm.avatar,
     })
 
-    alert('创建成功！')
-    showCreateGroupModal.value = false
+    alert('群聊创建成功！')
+    isModalVisible.value = false
+    // TODO: 可以在这里刷新 myGroups 列表
   } catch (error) {
     console.error(error)
-    alert('创建失败，请检查网络或后端')
+    alert('创建失败，请稍后重试')
   } finally {
     isCreating.value = false
   }
 }
-
-const handleSelectContact = (item: any) => {
-  console.log('选择了联系人:', item)
-  // 这里可以做跳转到聊天，或者在右侧显示资料
-}
 </script>
+
 <template>
   <div
     class="h-screen w-full bg-[url('@/assets/img/chat_server_background.jpg')] bg-cover bg-center flex items-center justify-center"
@@ -155,6 +173,7 @@ const handleSelectContact = (item: any) => {
                 />
               </svg>
             </button>
+
             <button class="hover:text-gray-900 hover:scale-110 transition" title="收藏">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -196,7 +215,11 @@ const handleSelectContact = (item: any) => {
                 />
               </svg>
             </button>
-            <button class="hover:text-gray-900 hover:scale-110 transition" title="主页">
+            <button
+              @click="handleToOwnInfo"
+              class="hover:text-gray-900 hover:scale-110 transition"
+              title="主页"
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 class="h-6 w-6"
@@ -223,7 +246,6 @@ const handleSelectContact = (item: any) => {
               placeholder="搜索联系人/群聊"
               class="flex-1 bg-gray-200 text-sm px-3 py-2 rounded-md outline-none focus:bg-white transition"
             />
-
             <button
               @click="openCreateModal"
               class="w-9 h-9 bg-[#FCD3D3] rounded-lg flex items-center justify-center hover:bg-red-200 transition text-gray-700"
@@ -271,12 +293,18 @@ const handleSelectContact = (item: any) => {
               <div v-show="expandContacts" class="pl-4 space-y-1 mt-1">
                 <div
                   v-for="item in contacts"
-                  :key="item.id"
+                  :key="item.user_id"
                   @click="handleSelectContact(item)"
                   class="flex items-center p-2 rounded-md hover:bg-white cursor-pointer transition"
                 >
-                  <img :src="item.avatar" class="w-8 h-8 rounded-full mr-3 bg-white" />
-                  <span class="text-sm text-gray-700">{{ item.name }}</span>
+                  <img
+                    :src="
+                      item.avatar ||
+                      'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
+                    "
+                    class="w-8 h-8 rounded-full mr-3 bg-white"
+                  />
+                  <span class="text-sm text-gray-700">{{ item.user_name }}</span>
                 </div>
               </div>
             </div>
@@ -305,10 +333,16 @@ const handleSelectContact = (item: any) => {
               <div v-show="expandMyGroups" class="pl-4 space-y-1 mt-1">
                 <div
                   v-for="item in myGroups"
-                  :key="item.id"
+                  :key="item.uuid"
                   class="flex items-center p-2 rounded-md hover:bg-white cursor-pointer transition"
                 >
-                  <img :src="item.avatar" class="w-8 h-8 rounded-full mr-3 bg-white" />
+                  <img
+                    :src="
+                      item.avatar ||
+                      'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'
+                    "
+                    class="w-8 h-8 rounded-full mr-3 bg-white"
+                  />
                   <span class="text-sm text-gray-700">{{ item.name }}</span>
                 </div>
               </div>
@@ -338,10 +372,16 @@ const handleSelectContact = (item: any) => {
               <div v-show="expandJoinedGroups" class="pl-4 space-y-1 mt-1">
                 <div
                   v-for="item in joinedGroups"
-                  :key="item.id"
+                  :key="item.uuid"
                   class="flex items-center p-2 rounded-md hover:bg-white cursor-pointer transition"
                 >
-                  <img :src="item.avatar" class="w-8 h-8 rounded-full mr-3 bg-white" />
+                  <img
+                    :src="
+                      item.avatar ||
+                      'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'
+                    "
+                    class="w-8 h-8 rounded-full mr-3 bg-white"
+                  />
                   <span class="text-sm text-gray-700">{{ item.name }}</span>
                 </div>
               </div>
@@ -373,36 +413,94 @@ const handleSelectContact = (item: any) => {
       </div>
 
       <div
-        v-if="showCreateGroupModal"
+        v-if="isModalVisible"
         class="absolute inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center"
       >
-        <div class="bg-white w-80 rounded-2xl shadow-2xl p-6 transform transition-all scale-100">
-          <h3 class="text-lg font-bold text-gray-800 mb-4 text-center">创建新群聊</h3>
+        <div class="bg-white w-96 rounded-2xl shadow-2xl p-6 transform transition-all scale-100">
+          <h3 class="text-lg font-bold text-gray-800 mb-6 text-center">创建新群聊</h3>
 
-          <div class="mb-6">
-            <label class="block text-xs font-medium text-gray-500 mb-1 ml-1">群名称</label>
-            <input
-              v-model="newGroupName"
-              type="text"
-              placeholder="例如：周末开黑群"
-              class="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#FCD3D3] focus:border-transparent outline-none transition text-sm"
-              @keyup.enter="handleCreateGroup"
-            />
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1 ml-1"
+                >群名称 <span class="text-red-500">*</span></label
+              >
+              <input
+                v-model="createForm.name"
+                type="text"
+                placeholder="例如：周末开黑群"
+                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#FCD3D3] focus:border-transparent outline-none transition text-sm"
+              />
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1 ml-1">群公告</label>
+              <textarea
+                v-model="createForm.notice"
+                rows="3"
+                placeholder="简单介绍一下本群..."
+                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#FCD3D3] focus:border-transparent outline-none transition text-sm resize-none"
+              ></textarea>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1 ml-1">加群方式</label>
+              <div class="flex gap-4 mt-1">
+                <label class="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    :value="false"
+                    v-model="createForm.addMode"
+                    class="w-4 h-4 text-pink-500 focus:ring-pink-500 border-gray-300"
+                  />
+                  <span class="ml-2 text-sm text-gray-700">直接加入</span>
+                </label>
+                <label class="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    :value="true"
+                    v-model="createForm.addMode"
+                    class="w-4 h-4 text-pink-500 focus:ring-pink-500 border-gray-300"
+                  />
+                  <span class="ml-2 text-sm text-gray-700">群主审核</span>
+                </label>
+              </div>
+            </div>
           </div>
 
-          <div class="flex gap-3">
+          <div class="flex gap-3 mt-8">
             <button
-              @click="showCreateGroupModal = false"
-              class="flex-1 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition text-sm font-medium"
+              @click="isModalVisible = false"
+              class="flex-1 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition text-sm font-medium"
             >
               取消
             </button>
             <button
               @click="handleCreateGroup"
               :disabled="isCreating"
-              class="flex-1 py-2 rounded-lg bg-[#FCD3D3] text-gray-700 font-bold hover:bg-red-200 transition disabled:opacity-50 text-sm shadow-sm"
+              class="flex-1 py-2.5 rounded-lg bg-[#FCD3D3] text-gray-700 font-bold hover:bg-red-200 transition disabled:opacity-50 text-sm shadow-sm flex justify-center items-center"
             >
-              {{ isCreating ? '创建中...' : '立即创建' }}
+              <svg
+                v-if="isCreating"
+                class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-700"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                ></circle>
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              {{ isCreating ? '创建中' : '立即创建' }}
             </button>
           </div>
         </div>
