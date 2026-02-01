@@ -25,7 +25,7 @@ func init() {
 	if err != nil {
 		zlog.Fatal(err.Error())
 	}
-	err = GormDB.AutoMigrate(&model.UserInfo{}, &model.GroupInfo{})
+	err = GormDB.AutoMigrate(&model.UserInfo{}, &model.GroupInfo{}, &model.UserContact{})
 	if err != nil {
 		zlog.Fatal(err.Error())
 	}

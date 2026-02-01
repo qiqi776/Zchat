@@ -3,7 +3,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
-import { createGroup, getContactList } from '@/api/chat' // 确保 api/chat.ts 已定义
+import { createGroup, getUserList, getMyGroupList } from '@/api/chat'
 import type { ContactItem, GroupItem } from '@/api/chat'
 
 const router = useRouter()
@@ -25,28 +25,43 @@ const contacts = ref<ContactItem[]>([])
 const myGroups = ref<GroupItem[]>([])
 const joinedGroups = ref<GroupItem[]>([])
 
-// 创建群聊表单 (对应后端 GroupInfo 结构)
+// 创建群聊表单
 const createForm = reactive({
   name: '',
   notice: '',
-  addMode: false, // false: 直接加入, true: 需要审核
+  add_mode: false,
   avatar: '',
 })
 
-// --- 生命周期 ---
-onMounted(async () => {
+// 获取联系人
+const fetchContacts = async () => {
+  if (!currentUser.value.uuid) return
   try {
-    // 获取真实通讯录列表
-    const res = await getContactList()
-    if (res) {
-      contacts.value = res
-    }
+    const res = await getUserList({ owner_id: currentUser.value.uuid })
+    if (res) contacts.value = res
   } catch (error) {
     console.error('加载通讯录失败:', error)
   }
+}
+
+// 获取创建的群组
+const fetchMyGroups = async () => {
+  if (!currentUser.value.uuid) return
+  try {
+    const res = await getMyGroupList({ owner_id: currentUser.value.uuid })
+    if (res) myGroups.value = res
+  } catch (error) {
+    console.error('加载群组失败:', error)
+  }
+}
+
+// 生命周期
+onMounted(() => {
+  fetchContacts()
+  fetchMyGroups()
 })
 
-// --- 交互逻辑 ---
+// 交互逻辑
 const handleToChat = () => router.push('/chat')
 const handleToOwnInfo = () => router.push('/profile')
 
@@ -56,13 +71,21 @@ const handleSelectContact = (item: ContactItem) => {
   // router.push({ path: '/chat', query: { target: item.user_id } })
 }
 
-// --- 弹窗逻辑 ---
+const toggleMyGroups = () => {
+  expandMyGroups.value = !expandMyGroups.value
+  // 懒加载优化
+  if (expandMyGroups.value && myGroups.value.length === 0) {
+    fetchMyGroups()
+  }
+}
+
+// 弹窗逻辑
 const openCreateModal = () => {
   isModalVisible.value = true
   // 重置表单
   createForm.name = ''
   createForm.notice = ''
-  createForm.addMode = false
+  createForm.add_mode = false
   createForm.avatar = ''
 }
 
@@ -74,18 +97,19 @@ const handleCreateGroup = async () => {
 
   isCreating.value = true
   try {
-    // 调用 API
     await createGroup({
-      ownerId: currentUser.value.uuid, // 必须传群主ID
+      owner_id: currentUser.value.uuid,
       name: createForm.name,
       notice: createForm.notice,
-      addMode: createForm.addMode,
+      add_mode: createForm.add_mode,
       avatar: createForm.avatar,
     })
 
     alert('群聊创建成功！')
     isModalVisible.value = false
-    // TODO: 可以在这里刷新 myGroups 列表
+
+    await fetchMyGroups()
+    expandMyGroups.value = true
   } catch (error) {
     console.error(error)
     alert('创建失败，请稍后重试')
@@ -117,7 +141,6 @@ const handleCreateGroup = async () => {
               />
             </div>
           </div>
-
           <div class="flex-1 flex flex-col space-y-6 text-gray-600">
             <button
               @click="handleToChat"
@@ -139,7 +162,6 @@ const handleCreateGroup = async () => {
                 />
               </svg>
             </button>
-
             <button class="text-gray-900 scale-110 transition cursor-default" title="通讯录">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -156,65 +178,8 @@ const handleCreateGroup = async () => {
                 />
               </svg>
             </button>
-
-            <button class="hover:text-gray-900 hover:scale-110 transition" title="朋友圈">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-                />
-              </svg>
-            </button>
-
-            <button class="hover:text-gray-900 hover:scale-110 transition" title="收藏">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-                />
-              </svg>
-            </button>
           </div>
-
           <div class="flex flex-col space-y-6 text-gray-600">
-            <button class="hover:text-gray-900 hover:scale-110 transition" title="设置">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                />
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-            </button>
             <button
               @click="handleToOwnInfo"
               class="hover:text-gray-900 hover:scale-110 transition"
@@ -306,12 +271,15 @@ const handleCreateGroup = async () => {
                   />
                   <span class="text-sm text-gray-700">{{ item.user_name }}</span>
                 </div>
+                <div v-if="contacts.length === 0" class="text-xs text-gray-400 pl-4">
+                  暂无联系人
+                </div>
               </div>
             </div>
 
             <div class="select-none">
               <div
-                @click="expandMyGroups = !expandMyGroups"
+                @click="toggleMyGroups"
                 class="flex items-center px-2 py-2 text-gray-600 cursor-pointer hover:bg-gray-200 rounded-md transition"
               >
                 <svg
@@ -333,7 +301,7 @@ const handleCreateGroup = async () => {
               <div v-show="expandMyGroups" class="pl-4 space-y-1 mt-1">
                 <div
                   v-for="item in myGroups"
-                  :key="item.uuid"
+                  :key="item.group_id"
                   class="flex items-center p-2 rounded-md hover:bg-white cursor-pointer transition"
                 >
                   <img
@@ -343,7 +311,10 @@ const handleCreateGroup = async () => {
                     "
                     class="w-8 h-8 rounded-full mr-3 bg-white"
                   />
-                  <span class="text-sm text-gray-700">{{ item.name }}</span>
+                  <span class="text-sm text-gray-700">{{ item.group_name }}</span>
+                </div>
+                <div v-if="myGroups.length === 0" class="text-xs text-gray-400 pl-4">
+                  暂无创建的群聊
                 </div>
               </div>
             </div>
@@ -370,20 +341,7 @@ const handleCreateGroup = async () => {
                 <span class="font-medium text-sm">我加入的群聊</span>
               </div>
               <div v-show="expandJoinedGroups" class="pl-4 space-y-1 mt-1">
-                <div
-                  v-for="item in joinedGroups"
-                  :key="item.uuid"
-                  class="flex items-center p-2 rounded-md hover:bg-white cursor-pointer transition"
-                >
-                  <img
-                    :src="
-                      item.avatar ||
-                      'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'
-                    "
-                    class="w-8 h-8 rounded-full mr-3 bg-white"
-                  />
-                  <span class="text-sm text-gray-700">{{ item.name }}</span>
-                </div>
+                <div class="text-xs text-gray-400 pl-4">暂无加入的群聊</div>
               </div>
             </div>
           </div>
@@ -449,7 +407,7 @@ const handleCreateGroup = async () => {
                   <input
                     type="radio"
                     :value="false"
-                    v-model="createForm.addMode"
+                    v-model="createForm.add_mode"
                     class="w-4 h-4 text-pink-500 focus:ring-pink-500 border-gray-300"
                   />
                   <span class="ml-2 text-sm text-gray-700">直接加入</span>
@@ -458,12 +416,22 @@ const handleCreateGroup = async () => {
                   <input
                     type="radio"
                     :value="true"
-                    v-model="createForm.addMode"
+                    v-model="createForm.add_mode"
                     class="w-4 h-4 text-pink-500 focus:ring-pink-500 border-gray-300"
                   />
                   <span class="ml-2 text-sm text-gray-700">群主审核</span>
                 </label>
               </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1 ml-1">群头像</label>
+              <input
+                v-model="createForm.avatar"
+                type="text"
+                placeholder="URL (选填)"
+                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#FCD3D3] focus:border-transparent outline-none transition text-sm"
+              />
             </div>
           </div>
 
@@ -479,28 +447,8 @@ const handleCreateGroup = async () => {
               :disabled="isCreating"
               class="flex-1 py-2.5 rounded-lg bg-[#FCD3D3] text-gray-700 font-bold hover:bg-red-200 transition disabled:opacity-50 text-sm shadow-sm flex justify-center items-center"
             >
-              <svg
-                v-if="isCreating"
-                class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-700"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  class="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  stroke-width="4"
-                ></circle>
-                <path
-                  class="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              {{ isCreating ? '创建中' : '立即创建' }}
+              <span v-if="!isCreating">立即创建</span>
+              <span v-else>创建中...</span>
             </button>
           </div>
         </div>

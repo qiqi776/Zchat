@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gorm.io/gorm"
 	"time"
+	"gorm.io/gorm"
 	"Zchat/internal/dao"
 	"Zchat/internal/dto/request"
+	"Zchat/internal/dto/respond"
 	"Zchat/internal/model"
 	"Zchat/pkg/util/random"
 	"Zchat/pkg/zlog"
@@ -109,13 +110,22 @@ func (g *groupInfoService) GetAllMembers(groupId string) ([]string, error) {
 }
 
 // LoadMyGroup 获取我创建的群聊
-func (g *groupInfoService) LoadMyGroup(ownerId string) []model.GroupInfo {
+func (g *groupInfoService) LoadMyGroup(ownerId string) ([]respond.LoadMyGroupRespond, error) {
 	var groupList []model.GroupInfo
 	if res := dao.GormDB.Order("created_at DESC").Where("owner_id = ?", ownerId).Find(&groupList); res.Error != nil {
 		zlog.Error(res.Error.Error())
-		return nil
+		return nil, res.Error
 	}
-	return groupList
+	var groupListRsp []respond.LoadMyGroupRespond
+	for _, group := range groupList {
+		groupListRsp = append(groupListRsp, respond.LoadMyGroupRespond{
+			GroupID: group.Uuid,
+			GroupName: group.Name,
+			Avatar: group.Avatar,
+		})
+	}
+
+	return groupListRsp, nil
 }
 
 // GetGroupInfo 获取聊天详情

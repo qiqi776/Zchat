@@ -1,29 +1,30 @@
 import request from '@/utils/request'
 import type { ChatSession } from '@/models/chat'
 
+// 群组信息
 export interface GroupItem {
-  uuid: string // 注意：后端 json tag 是 "uuid"
-  name: string
+  group_id: string
+  group_name: string
   avatar: string
   notice?: string
-  ownerId?: string // 后端是 ownerId
-  memberCnt?: number // 后端是 memberCnt
+  owner_id?: string
+  member_cnt?: number
 }
 
-// 对应后端的 MyUserListRespond
+// 联系人信息 MyUserListRespond
 export interface ContactItem {
   user_id: string
   user_name: string
   avatar: string
 }
 
-// 对应后端的 GroupInfo
+// 创建群组参数 CreateGroupRequest
 export interface CreateGroupParams {
-  ownerId: string
+  owner_id: string
   name: string
   notice?: string
   avatar?: string
-  addMode: boolean
+  add_mode: boolean
 }
 
 // 获取会话列表
@@ -36,12 +37,17 @@ export const getHistoryMessages = (sessionId: string) => {
   return request.get(`/chat/history?sessionId=${sessionId}`)
 }
 
-// 获取通讯录列表
-export const getContactList = () => {
-  return request.get<any, ContactItem[]>('/contact/list')
+// 通讯录-获取联系人列表
+export const getUserList = (data: { owner_id: string }) => {
+  return request.post<any, ContactItem[]>('/user/getUserList', data)
 }
 
-// 创建群聊
+// 通讯录-获取创建的群组
+export const getMyGroupList = (data: { owner_id: string }) => {
+  return request.post<any, GroupItem[]>('/group/loadMyGroup', data)
+}
+
+// 通讯录-创建群聊
 export const createGroup = (data: CreateGroupParams) => {
   return request.post('/group/createGroup', data)
 }
